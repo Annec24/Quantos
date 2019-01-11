@@ -9,12 +9,40 @@ Try executing this chunk by clicking the *Run* button within the chunk or by pla
 
 ```{r}
 library(tidyverse)
+library(dplyr)
 library(readxl)
 ```
 ```{r}
-read_xlsx(H:\Quantos\quantos\Dosing 2018)
+data <- read_xls("H:/Quantos/quantos/Dosing 2018/01052018.xls")
+str(data)
 
 ```
+
+```{r}
+dir_path <- "H:/Quantos/quantos/Dosing 2018"
+re_file <- ".xls"
+
+read_sheets <- function(dir_path, file){
+  xls_file <- paste0(dir_path, file)
+  xls_file %>%
+    excel_sheets() %>%
+    set_names() %>%
+    map_dfr(read_excel, path = xls_file, .id = 'sheet_name') %>% 
+    mutate(file_name = file) %>% 
+    select(file_name, sheet_name, everything())
+}
+
+df <- list.files(dir_path, re_file)
+df
+read_sheets
+
+```
+
+```{r}
+
+
+```
+
 
 Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I*.
 
