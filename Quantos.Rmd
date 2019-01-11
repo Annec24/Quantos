@@ -8,18 +8,36 @@ This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute
 Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
 
 ```{r}
+# Load libraries
 library(tidyverse)
-library(dplyr)
 library(readxl)
+
+# Quantos data directory path
+# Starting with 2018 directory, but we'll expand it to get files
+# from all the yearly directories
+dir_path <- "H:/Quantos/quantos/Dosing 2018"
 ```
+
+# Load quantos data
+
 ```{r}
+# Initial working excel read
 data <- read_xls("H:/Quantos/quantos/Dosing 2018/01052018.xls")
+
+#Add some abstraction so we can load a file that's in a variable
+file <- "H:/Quantos/quantos/Dosing 2018/01052018.xls"
+data <- read_xls(file)
 str(data)
 
 ```
+Next thing is to modify the read_xls() to tell it there's no header line
+Googling with "read_xls r header" showed me that the option you need to
+Set is `col_names`.
+
+After that, you can make a list of files to read and read them into a single
+dataframe by running a `for` loop (easier) or using something like `apply` or `map_dfr` (more advanced).
 
 ```{r}
-dir_path <- "H:/Quantos/quantos/Dosing 2018"
 re_file <- ".xls"
 
 read_sheets <- function(dir_path, file){
