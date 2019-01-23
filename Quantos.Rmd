@@ -48,15 +48,29 @@ files
 
 data <- files %>%
   map(read_xls) %>%    # read in all the files individually, using
-                       # the function read_csv() from the readr package
+                       # the function read_xls() from the readexcel package
   reduce(rbind)        # reduce with rbind into one dataframe
 data
 
-# First try didn't work because we're not using col_names. 
-# The error tells us that reduce couldn't combine the files 
-# because the column names are different for every file 
-# They're the first line of data from each file.
+
 ```
+First try didn't work because we're not using col_names.
+The error tells us that reduce couldn't combine the files
+because the column names are different for every file
+They're the first line of data from each file.
+
+
+Let's try it again with the column names.
+
+```{r}
+data <- files %>%
+  map(function(file) read_xls(file, col_names = c("ts", "pos", "mass", "QC"))) %>%    # read in all the files individually, using
+                       # the function read_xls() from the readexcel package
+  reduce(rbind)        # reduce with rbind into one dataframe
+summary(data)
+```
+
+The `map` function is a little weird here. In order to feed options to `read_xls`, we're creating an "anonymous" function within `map()`.
 
 ```{r}
 re_file <- ".xls"
