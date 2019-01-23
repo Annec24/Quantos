@@ -1,6 +1,8 @@
 ---
 title: "Quantos Project"
-output: html_notebook
+output:
+  html_document:
+    df_print: paged
 ---
 
 This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
@@ -41,11 +43,24 @@ data <- read_xls(file, col_names = c("ts", "pos", "mass", "QC"))
 After that, you can make a list of files to read and read them into a single
 dataframe by running a `for` loop (easier) or using something like `apply` or `map_dfr` (more advanced).
 
+First step, make a vector of all the files we want to combine...
 ```{r}
 # find all file names ending in .xls
 files <- dir(path = dir_path, full.names = TRUE, pattern = "*.xls")
 files
+```
 
+How do we get all the data from all the years? Since we are giving `map` a list of full file paths, we just need to figure out how to get all those files from all those directories into `files`.
+
+From the help for `dir`, there's an option called `recursive` that looks promising...
+
+```{r}
+top_dir_path <- "H:/Quantos/quantos"
+files <- dir(path = top_dir_path, full.names = TRUE, recursive = TRUE, pattern = "*.xls")
+str(files)
+```
+
+```{r}
 data <- files %>%
   map(read_xls) %>%    # read in all the files individually, using
                        # the function read_xls() from the readexcel package
@@ -71,6 +86,8 @@ summary(data)
 ```
 
 The `map` function is a little weird here. In order to feed options to `read_xls`, we're creating an "anonymous" function within `map()`.
+
+
 
 ```{r}
 re_file <- ".xls"
