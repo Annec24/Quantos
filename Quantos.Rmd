@@ -42,7 +42,20 @@ After that, you can make a list of files to read and read them into a single
 dataframe by running a `for` loop (easier) or using something like `apply` or `map_dfr` (more advanced).
 
 ```{r}
+# find all file names ending in .xls
+files <- dir(path = dir_path, full.names = TRUE, pattern = "*.xls")
+files
 
+data <- files %>%
+  map(read_xls) %>%    # read in all the files individually, using
+                       # the function read_csv() from the readr package
+  reduce(rbind)        # reduce with rbind into one dataframe
+data
+
+# First try didn't work because we're not using col_names. 
+# The error tells us that reduce couldn't combine the files 
+# because the column names are different for every file 
+# They're the first line of data from each file.
 ```
 
 ```{r}
