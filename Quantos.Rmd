@@ -35,6 +35,9 @@ data
 ggplot(data, aes(x=X__3))+geom_histogram()
 ```
 
+```{r}
+ggplot(data, aes(x=X__1,y=X__3,color=X__4))+geom_point()+geom_smooth()
+```
 
 
 # Load quantos data
