@@ -11,6 +11,7 @@ Try executing this chunk by clicking the *Run* button within the chunk or by pla
 # Load libraries
 library(tidyverse)
 library(readxl)
+library(purrr)
 
 # Quantos data directory path
 # Starting with 2018 directory, but we'll expand it to get files
@@ -18,15 +19,33 @@ library(readxl)
 dir_path <- "H:/Quantos/quantos/Dosing 2018"
 ```
 
+```{r}
+files <- dir(path=dir_path, full.names=TRUE, pattern = "*.xls")
+```
+
+
+```{r}
+data<- files %>%
+  map(function(x) read_xls(x, col_names=FALSE)) %>%
+  reduce(rbind)
+data
+```
+
+```{r}
+ggplot(data, aes(x=X__3))+geom_histogram()
+```
+
+
+
 # Load quantos data
 
 ```{r}
 # Initial working excel read
-data <- read_xls("H:/Quantos/quantos/Dosing 2018/01052018.xls")
+data <- read_xls("H:/Quantos/quantos/Dosing 2018/01052018.xls", col_names=FALSE)
 
 #Add some abstraction so we can load a file that's in a variable
 file <- "H:/Quantos/quantos/Dosing 2018/01052018.xls"
-data <- read_xls(file)
+data <- read_xls(file, col_names=FALSE)
 str(data)
 
 ```
