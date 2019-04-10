@@ -5,9 +5,12 @@ output:
     df_print: paged
 ---
 
-This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+Code to read and analyse Quantos Fe weight files.
 
-Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
+TODO: 
+* Split off code that reads files and makes a dataset, so that we don't have to read all the files every time.
+* Error checking to find that pesky file with 11 columns and the two points without times
+* Data analysis- what problems do we want to solve?
 
 ```{r}
 # Load libraries
@@ -17,21 +20,23 @@ library(readxl)
 # Quantos data directory path
 # Starting with 2018 directory, but we'll expand it to get files
 # from all the yearly directories
-dir_path <- "H:/Quantos/quantos/Dosing 2018"
+
+dir_path <- "/mnt/shared/Quantos/quantos/Dosing 2018"
 ```
 
 # Load quantos data
 
 ```{r}
 # Initial working excel read
-data <- read_xls("H:/Quantos/quantos/Dosing 2018/01052018.xls")
+data <- read_xls("/mnt/shared/Quantos/quantos/Dosing 2018/01052018.xls")
 
 #Add some abstraction so we can load a file that's in a variable
-file <- "H:/Quantos/quantos/Dosing 2018/01052018.xls"
+file <- "/mnt/shared/Quantos/quantos/Dosing 2018/01052018.xls"
 data <- read_xls(file)
 str(data)
 
 ```
+
 Next thing is to modify the read_xls() to tell it there's no header line
 Googling with "read_xls r header" showed me that the option you need to
 Set is `col_names`.
@@ -47,7 +52,7 @@ First step, make a vector of all the files we want to combine...
 ```{r}
 # find all file names ending in .xls
 files <- dir(path = dir_path, full.names = TRUE, pattern = "*.xls")
-files
+str(files)
 ```
 
 How do we get all the data from all the years? Since we are giving `map` a list of full file paths, we just need to figure out how to get all those files from all those directories into `files`.
@@ -55,29 +60,34 @@ How do we get all the data from all the years? Since we are giving `map` a list 
 From the help for `dir`, there's an option called `recursive` that looks promising...
 
 ```{r}
-top_dir_path <- "H:/Quantos/quantos"
+top_dir_path <- "/mnt/shared/Quantos/quantos"
 files <- dir(path = top_dir_path, full.names = TRUE, recursive = TRUE, pattern = "*.xls")
 str(files)
 ```
 
-```{r}
+OK, lets try it!
+
+```{}
 data <- files %>%
-  map(read_xls) %>%    # read in all the files individually, using
-                       # the function read_xls() from the readexcel package
-  reduce(rbind)        # reduce with rbind into one dataframe
-data
-
-
+    map(read_xls) %>%    # read in all the files individually, using
+                         # the function read_xls() from the readexcel package
+    reduce(rbind)        # reduce with rbind into one dataframe
 ```
-First try didn't work because we're not using col_names.
-The error tells us that reduce couldn't combine the files
+
+This code didn't work because we're not using col_names.
+The error:
+```{}
+Error in match.names(clabs, names(xi)) : names do not match previous names
+```
+
+tells us that reduce couldn't combine the files
 because the column names are different for every file
 They're the first line of data from each file.
 
 
 Let's try it again with the column names.
 
-```{r}
+```{}
 data <- files %>%
   map(function(file) read_xls(file, col_names = c("ts", "pos", "mass", "QC"))) %>%    # read in all the files individually, using
                        # the function read_xls() from the readexcel package
@@ -87,35 +97,82 @@ summary(data)
 
 The `map` function is a little weird here. In order to feed options to `read_xls`, we're creating an "anonymous" function within `map()`.
 
+Also, this code fails with this error:
+```{}
+Error: Sheet 1 has 11 columns (11 unskipped), but `col_names` has length 4.
+```
 
+At least one of the files is corrupt and has 11 columns!
+
+Here's our file reading and conglomerating code, put into a function to track down which excel file has 11 columns!
 
 ```{r}
-re_file <- ".xls"
-
-read_sheets <- function(dir_path, file){
-  xls_file <- paste0(dir_path, file)
-  xls_file %>%
-    excel_sheets() %>%
-    set_names() %>%
-    map_dfr(read_excel, path = xls_file, .id = 'sheet_name') %>% 
-    mutate(file_name = file) %>% 
-    select(file_name, sheet_name, everything())
+readQuantosFiles <- function(files) {
+  files %>%
+    map(function(file) read_xls(file, col_names = c("ts", "pos", "mass", "QC"), 
+                                )
+        ) %>%
+    reduce(rbind)        # reduce with rbind into one dataframe
 }
-
-df <- list.files(dir_path, re_file)
-df
-read_sheets
-
 ```
+
+
+Let's see what year has the problem file. We should probably just write a function to find the file, but I'm lazy so I'm going to do more work and less thinking. Actually, I'm giving up on this for now. It's a good excercise (hint, hint).
+
+Turns out readxl has a range argument. Assuming the first four columns are the ones we want and that someone just did some fiddling with one of the files, this should work...
 
 ```{r}
+readQuantosFiles <- function(files) {
+  files %>%
+    map(function(file) read_xls(file, col_names = c("ts", "pos", "mass", "QC"),
+                                range = cell_cols("A:D") #only take first 4 columns
+                                )
+        ) %>%
+    reduce(rbind)        # reduce with rbind into one dataframe
+}
+```
 
+OK, this appears to read all the years of data correctly
 
+```{r}
+data <- readQuantosFiles(files)
+str(data)
+summary(data)
+```
+
+## Exploratory Data Analysis
+
+We've got the data, let's look at it!
+
+```{r}
+#plot all masses over time
+ggplot(data, aes(ts, mass)) + geom_point()
+
+# plot a histogram
+ggplot(data, aes(mass)) +
+  geom_histogram() +
+  xlim(1.5, 6)
+```
+```{r}
+# Let's look at just 2.5mg
+d <- filter(data, mass > 2, mass < 3.2)
+
+# histogram
+ggplot(d, aes(mass)) +
+  geom_histogram() 
+
+# plot over time
+ggplot(d, aes(ts, mass)) + 
+  geom_point(size = .5, alpha = 0.1) + 
+  geom_smooth(method = 'gam', formula = y ~ s(x, bs = "cs"))
+
+# What's 2018 look like?
+d %>% 
+  filter(ts > "2018-01-01") %>%
+  ggplot(aes(ts, mass)) + 
+    geom_point(size = .5, alpha = 0.1) + 
+    geom_smooth(method = 'gam', formula = y ~ s(x, bs = "cs"))
+  
 ```
 
 
-Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I*.
-
-When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Ctrl+Shift+K* to preview the HTML file).
-
-The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
