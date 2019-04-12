@@ -140,6 +140,20 @@ str(data)
 summary(data)
 ```
 
+But why the heck is pos a character field and not numeric?
+
+```{r}
+unique(data$pos)
+```
+
+Well, that's interesting. Let's try and get the count of each value.
+
+```{r}
+data %>%
+  group_by(pos) %>%
+  summarize(N = n())
+```
+
 ## Exploratory Data Analysis
 
 We've got the data, let's look at it!
