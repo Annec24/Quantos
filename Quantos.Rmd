@@ -189,4 +189,14 @@ d %>%
   
 ```
 
+Any relation between pos and size?
+
+```{r}
+ggplot(d, aes(pos, mass)) +
+  geom_point()
+
+ggplot(d, aes(pos, ts)) +
+  geom_point()
+
+```
 
