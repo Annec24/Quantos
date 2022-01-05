@@ -3,89 +3,49 @@ title: "Quantos Project"
 output: html_notebook
 ---
 
-This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
-
-Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
-
 ```{r}
 # Load libraries
 library(tidyverse)
-library(readxl)
-library(purrr)
+```
 
-# Quantos data directory path
-# Starting with 2018 directory, but we'll expand it to get files
-# from all the yearly directories
-dir_path <- "H:/Quantos/quantos/Dosing 2018"
+Read combined Quantos data. Rerun `read_quantos_files.R` to regenerate csv.
+
+```{r}
+quantos_data <- read_csv("data/quantos_data.csv")
+```
+
+Initial plot
+
+```{r}
+ggplot(quantos_data, aes(timestamp, mass, color = valid)) +
+  geom_point() +
+  geom_smooth()
+```
+
+We should probably reclass this by size, but for now, let's look at 2.5mg iron. Filtering by mass.
+
+```{r}
+q25 <- quantos_data %>% 
+  filter(mass < 3,
+         mass > 2.2)
 ```
 
 ```{r}
-files <- dir(path=dir_path, full.names=TRUE, pattern = "*.xls")
+ggplot(q25, aes(timestamp, mass, color= valid))+
+  geom_point()+
+  geom_smooth()
 ```
 
+Summarize valid 2.5mg data
 
 ```{r}
-data<- files %>%
-  map(function(x) read_xls(x, col_names=FALSE)) %>%
-  reduce(rbind)
-data
+q25_good <- filter(q25, valid == "Valid")
+summarize(q25_good, across(mass, list(mean = mean, sd = sd)))
 ```
+
+Histogram
 
 ```{r}
-ggplot(data, aes(x=X__3))+geom_histogram()
+ggplot(q25_good, aes(mass))+geom_histogram()
 ```
 
-```{r}
-ggplot(data, aes(x=X__1,y=X__3,color=X__4))+geom_point()+geom_smooth()
-```
-
-
-# Load quantos data
-
-```{r}
-# Initial working excel read
-data <- read_xls("H:/Quantos/quantos/Dosing 2018/01052018.xls", col_names=FALSE)
-
-#Add some abstraction so we can load a file that's in a variable
-file <- "H:/Quantos/quantos/Dosing 2018/01052018.xls"
-data <- read_xls(file, col_names=FALSE)
-str(data)
-
-```
-Next thing is to modify the read_xls() to tell it there's no header line
-Googling with "read_xls r header" showed me that the option you need to
-Set is `col_names`.
-
-After that, you can make a list of files to read and read them into a single
-dataframe by running a `for` loop (easier) or using something like `apply` or `map_dfr` (more advanced).
-
-```{r}
-re_file <- ".xls"
-
-read_sheets <- function(dir_path, file){
-  xls_file <- paste0(dir_path, file)
-  xls_file %>%
-    excel_sheets() %>%
-    set_names() %>%
-    map_dfr(read_excel, path = xls_file, .id = 'sheet_name') %>% 
-    mutate(file_name = file) %>% 
-    select(file_name, sheet_name, everything())
-}
-
-df <- list.files(dir_path, re_file)
-df
-read_sheets
-
-```
-
-```{r}
-
-
-```
-
-
-Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I*.
-
-When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Ctrl+Shift+K* to preview the HTML file).
-
-The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
