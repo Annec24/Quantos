@@ -6,6 +6,7 @@ output: html_notebook
 ```{r}
 # Load libraries
 library(tidyverse)
+library(lubridate)
 ```
 
 Read combined Quantos data. Rerun `read_quantos_files.R` to regenerate csv.
@@ -18,6 +19,16 @@ Initial plot
 
 ```{r}
 ggplot(quantos_data, aes(timestamp, mass, color = valid)) +
+  geom_point() +
+  geom_smooth()
+```
+
+Remove obvious outliers
+
+```{r}
+quantos_data %>%
+  filter(mass < 50) %>% 
+ggplot(aes(timestamp, mass, color = valid)) +
   geom_point() +
   geom_smooth()
 ```
@@ -40,7 +51,18 @@ Summarize valid 2.5mg data
 
 ```{r}
 q25_good <- filter(q25, valid == "Valid")
-summarize(q25_good, across(mass, list(mean = mean, sd = sd)))
+summarize(q25, across(mass, list(mean = mean, sd = sd)))
+```
+Change in 2.5mg data over time
+
+```{r}
+q25_sum <- q25 %>% 
+  group_by(month = floor_date(timestamp, "month")) %>%
+  summarize(mass_mean = mean(mass),
+            mass_sd = sd(mass))
+
+ggplot(q25_sum, aes(month, mass_mean, ymin = mass_mean - mass_sd, ymax = mass_mean + mass_sd)) +
+  geom_pointrange()
 ```
 
 Histogram
