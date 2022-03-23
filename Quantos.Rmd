@@ -1,9 +1,11 @@
 ---
 title: "Quantos Project"
-output: html_notebook
+output:
+  html_document:
+    df_print: paged
 ---
 
-```{r}
+```{r, message = FALSE}
 # Load libraries
 library(tidyverse)
 library(lubridate)
@@ -12,7 +14,7 @@ library(lubridate)
 Read combined Quantos data. Rerun `read_quantos_files.R` to regenerate csv.
 
 ```{r}
-quantos_data <- read_csv("data/quantos_data.csv")
+quantos_data <- read_csv("data/quantos_data.csv", lazy = FALSE)
 ```
 
 Initial plot
